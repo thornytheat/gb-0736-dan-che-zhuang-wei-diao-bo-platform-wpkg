@@ -1,8 +1,8 @@
 import {$, node, table} from './view.js';
 
 // 班次使用固定的北京时间，输入框不读取浏览器所在时区。
-const local = value => value ? new Date(Date.parse(value) + 8 * 3600000).toISOString().slice(0, 23).replace(/(\.000)$/, '') : '';
-const apiTime = value => value ? `${value.length === 16 ? value + ':00' : value}+08:00` : '';
+export const local = value => value ? new Date(Date.parse(value) + 8 * 3600000).toISOString().slice(0, 23).replace(/(\.000)$/, '') : '';
+export const apiTime = value => value ? `${value.length === 16 ? value + ':00' : value}+08:00` : '';
 
 function choice(field, label, values, selected) {
   const element = node('select');

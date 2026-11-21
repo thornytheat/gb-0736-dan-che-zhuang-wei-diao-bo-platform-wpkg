@@ -1,11 +1,12 @@
 import {$, api, clock, date, notice, post, showError, time} from './view.js';
 import * as stages from './stages.js';
-import {fillDraft, newLeg, readDraft} from './dispatch.js';
+import {apiTime, fillDraft, local, newLeg, readDraft} from './dispatch.js';
 
 const anchors = [...document.querySelectorAll('.rail-nav [data-nav]')];
 const keys = anchors.map(link => link.dataset.nav);
 let current, meta, data, extra, selected, revision = 0;
 let draftRun, previewResult, previewedLegs;
+let bulletinAsOf = null, bulletinData = null;
 let busy = false;
 
 function runId() { return meta.manifest.id; }
@@ -35,6 +36,17 @@ function paint() {
     }
     stages.dispatch(previewResult || data, meta.shift, Boolean(previewResult));
     $('publish').disabled = !previewedLegs || runId() !== activeId() || busy;
+  } else if (current === 'bulletin') {
+    bulletinData = data;
+    stages.bulletin(data, meta.shift);
+    $('bulletin-asof').value = local(data.as_of);
+    const live = runId() === activeId() && !busy;
+    const confirmed = data.draft.totals.confirmed;
+    $('publish-partial').disabled = !confirmed || !live;
+    $('publish-all').disabled = confirmed !== data.draft.stations.length || !live;
+    $('verify-bulletin').disabled = !data.active;
+    $('sample-backfill').disabled = !data.sample_remaining || !live;
+    for (const button of document.querySelectorAll('#backfill-form button')) button.disabled = !live;
   } else stages[current](data, meta.shift, extra);
 }
 
@@ -63,13 +75,14 @@ async function load(run = selected) {
     const runMeta = await api(`/api/runs${run ? `?run=${encodeURIComponent(run)}` : ''}`);
     if (token !== revision) return;
     const suffix = `?run=${encodeURIComponent(runMeta.manifest.id)}`;
+    const bulletinQuery = bulletinAsOf ? `?as_of=${encodeURIComponent(bulletinAsOf)}` : '';
     const [payload, slots] = await Promise.all([
-      stage === 'runs' ? runMeta : api(`/api/${stage}${suffix}`),
+      stage === 'runs' ? runMeta : stage === 'bulletin' ? api(`/api/bulletin${bulletinQuery}`) : api(`/api/${stage}${suffix}`),
       stage === 'replay' ? api(`/api/demand${suffix}`) : null,
     ]);
     if (token !== revision) return;
     meta = runMeta;
-    data = stage === 'runs' ? runMeta : payload.data;
+    data = stage === 'runs' ? runMeta : stage === 'bulletin' ? payload : payload.data;
     extra = slots?.data;
     updateMeta();
     paint();
@@ -84,7 +97,7 @@ async function mutate(action, success) {
   if (busy) return;
   busy = true;
   const token = revision;
-  const form = current === 'dispatch' ? $('dispatch-form') : current === 'intake' ? $('upload-form') : null;
+  const form = current === 'dispatch' ? $('dispatch-form') : current === 'intake' ? $('upload-form') : current === 'bulletin' ? $('backfill-form') : null;
   if (form) form.inert = true;
   $('rerun').disabled = $('restore').disabled = true;
   notice('正在计算…');
@@ -112,7 +125,7 @@ window.addEventListener('hashchange', () => {
 });
 for (const id of ['intake-filter', 'replay-mode', 'demand-mode', 'inventory-mode']) $(id).addEventListener('change', paint);
 $('clear-slot').addEventListener('click', () => { stages.clearSlot(); paint(); });
-$('refresh').addEventListener('click', () => { draftRun = null; stages.clearSlot(); load(null); });
+$('refresh').addEventListener('click', () => { draftRun = null; bulletinAsOf = null; stages.clearSlot(); load(null); });
 $('rerun').addEventListener('click', () => mutate(() => post('/api/runs/rerun', {expected: runId()}), async result => {
   draftRun = null;
   await load(null);
@@ -153,6 +166,46 @@ $('sample-plan').addEventListener('click', () => {
   fillDraft(meta.sample_plan, meta.shift, invalidate);
   invalidate();
 });
+
+function publishBulletin(mode) {
+  if (!bulletinData) return;
+  const expected = bulletinData.active ? bulletinData.active.manifest.id : null;
+  mutate(() => post('/api/bulletin/publish', {expected, as_of: bulletinData.as_of, mode}), async result => {
+    bulletinAsOf = null;
+    await load(null);
+    notice(result.created ? `公报已发布 · ${result.id.slice(0, 12)}` : '车况结论不变 · 沿用同一公报编号');
+  });
+}
+
+$('cutoff-form').addEventListener('submit', event => {
+  event.preventDefault();
+  if (!$('bulletin-asof').value) return;
+  bulletinAsOf = apiTime($('bulletin-asof').value);
+  load();
+});
+$('publish-partial').addEventListener('click', () => publishBulletin('partial'));
+$('publish-all').addEventListener('click', () => publishBulletin('all'));
+$('verify-bulletin').addEventListener('click', () => {
+  const id = bulletinData && bulletinData.active && bulletinData.active.manifest.id;
+  if (!id) return;
+  mutate(() => post('/api/bulletin/verify', {id}), () => notice('复核一致 · 公报与封存输入重算相符'));
+});
+$('backfill-form').addEventListener('submit', event => {
+  event.preventDefault();
+  const form = new FormData(event.currentTarget);
+  form.set('covered_until', apiTime(form.get('covered_until')));
+  mutate(() => api('/api/bulletin/backfill', {method: 'POST', body: form}), async result => {
+    $('backfill-form').reset();
+    bulletinAsOf = null;
+    await load(null);
+    notice(result.created ? `批次已收件 · 采信 ${result.accepted} 笔 · 隔离 ${result.quarantined} 笔` : '批次已存在 · 内容一致未重复入账');
+  });
+});
+$('sample-backfill').addEventListener('click', () => mutate(() => post('/api/bulletin/backfill/sample', {}), async result => {
+  bulletinAsOf = null;
+  await load(null);
+  notice(result.id ? `样例批次 ${result.id} 已收件 · 剩余 ${result.remaining} 批` : '样例批次已全部收件');
+}));
 $('discard').addEventListener('click', () => {
   fillDraft(data.legs, meta.shift, invalidate);
   invalidate();

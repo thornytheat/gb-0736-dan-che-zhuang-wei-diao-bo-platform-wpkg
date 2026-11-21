@@ -20,4 +20,9 @@ REASONS = {
     'NO_ACCEPTED_EVENTS': '无可采信事件，请修正文件', 'BODY_TOO_LARGE': '文件体积超限',
     'BAD_REQUEST': '请求格式无效', 'REPLAY_DRIFT': '重跑结果与历史记录不一致',
     'STORE_UNAVAILABLE': '班次存储暂不可用，请重试',
+    'BAD_BATCH': '补传批次号无效', 'FOREIGN_STATION': '事件站点与批次站点不符',
+    'BEYOND_COVERAGE': '事件晚于批次覆盖截止', 'BATCH_CONFLICT': '相同批次号内容不一致',
+    'NO_BACKFILL': '终端尚未回传', 'CUTOFF_SHORT': '回传覆盖未达截止时点',
+    'STATIONS_PENDING': '存在未确认站点', 'STALE_BULLETIN': '车况公报已更新，请加载当前版本',
+    'BULLETIN_NOT_FOUND': '未找到车况公报', 'BULLETIN_DRIFT': '复核结果与已发布公报不一致',
 }

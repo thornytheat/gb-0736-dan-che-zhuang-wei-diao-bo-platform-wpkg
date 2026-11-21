@@ -14,6 +14,7 @@
 | M5 调拨试算 | 验证行程并比较逐站、逐笔差量 | `GET /api/dispatch` `POST /api/dispatch/preview` `POST /api/dispatch/publish` | `app/modules/dispatch/constraints.py` `app/modules/dispatch/compare.py` | `tests/test_dispatch.py` |
 | M6 库存勾稽 | 核对各站期末及全网车辆守恒 | `GET /api/inventory` | `app/modules/inventory/service.py` `app/modules/inventory/stations.py` | `tests/test_inventory.py` |
 | M7 班次方案留档 | 幂等重跑、回切和下载归档证据 | `GET /api/runs` `POST /api/runs/rerun` `POST /api/runs/restore` `GET /api/runs/<run_id>/evidence.json` | `app/modules/archive/service.py` `app/modules/archive/evidence.py` `app/store.py` | `tests/test_archive.py` |
+| M8 车况公报 | 收件终端补传、按站确认截止、部分发布或全站原子切换、复核公报 | `GET /api/bulletin` `POST /api/bulletin/backfill` `POST /api/bulletin/publish` `POST /api/bulletin/verify` | `app/modules/bulletin/service.py` `app/modules/bulletin/batches.py` `app/modules/bulletin/merge.py` `app/store.py` | `tests/test_bulletin.py` |
 
 ## 陷阱登记
 
@@ -34,6 +35,10 @@
 | TRAP-23 | `events.csv` 的 0009 正好处于 08:15 | 同一笔计进两个槽位 | 时槽按左闭右开分配 | `app/modules/demand/buckets.py` | `tests/test_demand.py::test_boundary_bucketing_does_not_double_count` |
 | TRAP-25 | `capacity.csv` 002 的同修订容量相互矛盾 | 落点随文件顺序变化 | 隔离同修订冲突，从剩余候选选最高版本 | `app/modules/capacity/versions.py` | `tests/test_capacity.py::test_conflicting_revisions_are_quarantined_together` |
 | TRAP-26 | 样例班次更新后旧页面再发布 | 覆盖当前计划 | 事务内校验当前编号并返回 409 | `app/store.py` | `tests/test_archive.py::test_stale_publish_rejected_and_archive_can_be_restored` |
+| TRAP-27 | 同一补传批次重试或同结论重复发布 | 同一车况出现两套编号 | 批次按内容摘要幂等收件，公报编号只对对外结论寻址，重试沿用同号 | `app/store.py` `app/modules/bulletin/service.py` | `tests/test_bulletin.py::test_retry_same_backfill_never_creates_second_bulletin` |
+| TRAP-28 | 全站切换时仍有站未回传 | 未确认站被当作已更新 | 未确认站沿用旧值并逐站标注原因；`all` 模式校验与同事务切换，失败保留旧公报 | `app/modules/bulletin/service.py` `app/store.py` | `tests/test_bulletin.py::test_all_mode_switch_is_atomic_when_stations_pending` |
+| TRAP-29 | 批次含他站事件或晚于覆盖截止的事件 | 越界数据混入车况 | 批次级校验单行隔离，原始行与原因码封存 | `app/modules/bulletin/batches.py` | `tests/test_bulletin.py::test_batch_events_quarantined_with_reasons_and_never_merged` |
+| TRAP-30 | 补传与基准同号异义 | 同一尝试被计两次或错并 | 跨源按业务键归并，矛盾双方一并剔除并列入冲突清单 | `app/modules/bulletin/merge.py` | `tests/test_bulletin.py::test_conflicting_event_id_across_sources_is_visible_and_excluded` |
 
 ## 对账规则
 

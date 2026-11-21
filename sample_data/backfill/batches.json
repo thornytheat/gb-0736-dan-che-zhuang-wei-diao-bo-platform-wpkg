@@ -1,0 +1,8 @@
+[
+  {"batch_id": "BF-002A", "station": "002", "covered_until": "2026-11-20T08:55:00+08:00", "file": "002.csv"},
+  {"batch_id": "BF-001A", "station": "001", "covered_until": "2026-11-20T08:58:00+08:00", "file": "001.csv"},
+  {"batch_id": "BF-003A", "station": "003", "covered_until": "2026-11-20T08:59:00+08:00", "file": "003.csv"},
+  {"batch_id": "BF-004A", "station": "004", "covered_until": "2026-11-20T08:59:00+08:00", "file": "004.csv"},
+  {"batch_id": "BF-002B", "station": "002", "covered_until": "2026-11-20T08:59:00+08:00", "file": "002b.csv"},
+  {"batch_id": "BF-001B", "station": "001", "covered_until": "2026-11-20T08:59:00+08:00", "file": "001b.csv"}
+]

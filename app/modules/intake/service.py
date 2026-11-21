@@ -6,8 +6,7 @@ from .normalize import FIELDS, normalize
 from .reader import records
 
 
-def intake(raw, shift):
-    rows, encoding = records(raw, FIELDS)
+def select(rows, shift, checks=()):
     groups = defaultdict(list)
     accepted, excluded = [], []
 
@@ -20,6 +19,8 @@ def intake(raw, shift):
             continue
         try:
             event = normalize(row['cells'], shift)
+            for check in checks:
+                check(event)
         except DomainError as error:
             exclude(row, error.code)
             continue
@@ -36,7 +37,13 @@ def intake(raw, shift):
         for row, _ in group[1:]:
             exclude(row, 'DUPLICATE_EVENT')
     accepted.sort(key=lambda event: (instant(event['at']), event['id']))
+    return accepted, sorted(excluded, key=lambda row: row['line'])
+
+
+def intake(raw, shift):
+    rows, encoding = records(raw, FIELDS)
+    accepted, excluded = select(rows, shift)
     return {'encoding': encoding, 'input_rows': len(rows), 'events': accepted,
-            'excluded': sorted(excluded, key=lambda row: row['line']),
+            'excluded': excluded,
             'reasons': dict(Counter(row['code'] for row in excluded)),
             'late': sum(event['late'] for event in accepted)}

@@ -9,7 +9,7 @@ def publish(client, run, legs):
     return client.post('/api/dispatch/publish', json={'expected': run, 'legs': legs})
 
 
-def test_workbench_and_seven_read_entries(client, run_id):
+def test_workbench_and_stage_read_entries(client, run_id):
     page = client.get('/')
     assert page.status_code == 200 and '潮汐槽位图' in page.get_data(as_text=True)
     for stage in ('intake', 'capacity', 'replay', 'demand', 'dispatch', 'inventory'):

@@ -140,6 +140,60 @@ export function inventory(data, shift) {
   $('audit-balances').replaceChildren(...gaps.map(([title, amount]) => diffCell(title, signed(amount), amount ? 'bad' : 'ok')));
 }
 
+export function bulletin(data, shift) {
+  const station = names(shift);
+  const {draft, active} = data;
+  const entries = draft.stations;
+  const confirmed = entries.filter(row => row.status === 'confirmed');
+  kpis([['已确认站', confirmed.length, '站', confirmed.length === entries.length ? 'ok' : ''],
+    ['未确认站', entries.length - confirmed.length, '站', confirmed.length === entries.length ? '' : 'warn'],
+    ['补传批次', data.batches.length, '批'], ['补传采信', data.batches.reduce((sum, row) => sum + row.accepted, 0), '笔'],
+    ['当前公报', active ? active.manifest.id.slice(0, 12) : '未发布']]);
+  const modeName = {draft: '草稿', partial: '部分发布', all: '全站切换'};
+  $('bulletin-state').textContent = active
+    ? `当前公报 ${active.manifest.id.slice(0, 12)} · ${modeName[active.manifest.mode]} · 截止 ${clock(active.manifest.as_of)}`
+    : '尚未发布公报 · 草稿仅在工作台内';
+  table('bulletin-stations', ['站点', '状态', '回传覆盖', '采用截止', '未确认原因', '可借（辆）', '空桩', '暂存（辆）', '未成交借', '未成交还', '批次'],
+    entries.map(row => [station(row.station),
+      node('span', row.status === 'confirmed' ? '已确认' : '沿用旧值', row.status === 'confirmed' ? 'ok' : 'warn'),
+      row.reported_until ? clock(row.reported_until) : '—', row.cutoff ? clock(row.cutoff) : '—',
+      row.reason ? label(row.reason) : '—', row.available, row.free, row.held, row.missed_rent, row.missed_return,
+      row.batches.length ? row.batches.join('、') : '—']), '没有站点');
+  const changes = draft.changes;
+  $('bulletin-diff-state').textContent = changes.vs === 'base' ? '相对无补传基准' : `相对上一版公报 ${changes.vs.slice(0, 12)}`;
+  $('bulletin-compare').replaceChildren(...changes.stations.map(row => {
+    const delta = row.after_missed - row.before_missed;
+    return diffCell(station(row.station), `可借 ${row.before_available} → ${row.after_available}`,
+      delta > 0 ? 'bad' : delta < 0 ? 'ok' : '', `未成交 ${row.before_missed} → ${row.after_missed}`);
+  }));
+  const attemptRows = [
+    ...changes.attempts.map(row => ({...row, source: '基准事件'})),
+    ...changes.introduced.map(row => ({...row, before: null, after: row.code, source: row.batch, added: true})),
+  ].sort((one, two) => one.at.localeCompare(two.at) || one.id.localeCompare(two.id));
+  table('bulletin-attempts', ['时点', '站点', '事件号', '尝试', '基准判定', '补传后判定', '来源'], attemptRows.map(row =>
+    [clock(row.at), station(row.station), row.id, kind(row.kind),
+      row.added ? node('span', '补传新增', 'warn') : outcome(row.before), outcome(row.after), row.source]),
+    '补传没有改变任何借还判定');
+  table('backfill-rows', ['批次号', '站点', '覆盖至', '收件时间', '采信', '隔离', 'SHA-256'], data.batches.map(row =>
+    [row.id, station(row.station), clock(row.covered_until), clock(row.received_at), row.accepted, row.quarantined,
+      row.sha256.slice(0, 12)]), '尚未收到补传批次');
+  $('backfill-summary').textContent = `重发去重 ${draft.totals.duplicates} 笔 · 跨源冲突 ${draft.totals.conflicts} 笔 · 样例剩余 ${data.sample_remaining} 批`;
+  table('bulletin-history', ['公报', '模式', '统一截止', '生成时间', '状态'], data.history.map(row =>
+    [row.id.slice(0, 12), modeName[row.mode] || row.mode, clock(row.as_of), `${date(row.generated_at)} ${clock(row.generated_at)}`,
+      row.active ? '当前公报' : '历史留档']), '尚未发布公报');
+  $('bulletin-history-state').textContent = `共 ${data.history.length} 版`;
+  const select = $('batch-station');
+  select.replaceChildren(...Object.entries(shift.stations).map(([code, row]) => new Option(`${row.name} · ${code}`, code)));
+  const evidence = $('bulletin-evidence');
+  if (active) {
+    evidence.href = `/api/bulletin/${active.manifest.id}/evidence.json`;
+    evidence.removeAttribute('aria-disabled');
+  } else {
+    evidence.removeAttribute('href');
+    evidence.setAttribute('aria-disabled', 'true');
+  }
+}
+
 export function runs(meta, openRun) {
   const {manifest, history} = meta;
   const active = history.find(row => row.active);
