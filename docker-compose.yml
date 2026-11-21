@@ -1,0 +1,16 @@
+services:
+  app:
+    build: .
+    ports:
+      - "${CYCLE_PORT:-18425}:18425"
+    environment:
+      CYCLE_DB: /data/shift.sqlite3
+    volumes:
+      - cycle_data:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:18425/health', timeout=2)"]
+      interval: 10s
+      timeout: 3s
+      retries: 4
+volumes:
+  cycle_data:

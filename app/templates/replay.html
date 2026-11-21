@@ -1,0 +1,13 @@
+<div class="stage" id="stage-replay" hidden>
+  <section class="panel tidal-panel">
+    <div class="panel__head"><div><h2>潮汐槽位图</h2><span class="subtle">各时间段结束前的桩位状态</span></div><label class="seg-label">回放场景 <select id="replay-mode"><option value="plan">调拨方案</option><option value="base">无调拨基准</option></select></label></div>
+    <div class="panel__body">
+      <div class="legend" aria-label="图例"><span><i class="legend-bike"></i>已占</span><span><i class="legend-free"></i>空桩</span><span><i class="legend-off"></i>关闭</span><span><i class="legend-missed"></i>有未成交</span><span class="subtle" id="slot-step"></span></div>
+      <div class="chart-scroll"><div id="tidal-chart" class="tidal" aria-label="按站点与时间排列的桩位图"></div></div>
+    </div>
+  </section>
+  <section class="panel">
+    <div class="panel__head"><div><h2>事件时间线</h2><span id="slot-selection" class="subtle"></span></div><button class="btn" id="clear-slot" hidden>显示全班次</button></div>
+    <div class="ledger-scroll" id="timeline"></div>
+  </section>
+</div>

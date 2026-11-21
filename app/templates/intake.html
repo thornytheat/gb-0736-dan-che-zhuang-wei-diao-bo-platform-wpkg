@@ -1,0 +1,10 @@
+<div class="stage" id="stage-intake" hidden>
+  <section class="panel">
+    <div class="panel__head"><h2>收件明细</h2><label>查看 <select id="intake-filter"><option value="excluded">隔离行</option><option value="events">采信行</option><option value="late">迟报行</option></select></label></div>
+    <div class="ledger-scroll" id="intake-rows"></div>
+  </section>
+  <section class="panel">
+    <div class="panel__head"><h2>替换事件文件</h2><span class="subtle">CSV · 256 KiB</span></div>
+    <form class="panel__body inline-form" id="upload-form"><label for="event-file">事件表</label><input id="event-file" name="events" type="file" accept=".csv,text/csv" required><button class="btn btn--primary" type="submit">收件并重算</button></form>
+  </section>
+</div>

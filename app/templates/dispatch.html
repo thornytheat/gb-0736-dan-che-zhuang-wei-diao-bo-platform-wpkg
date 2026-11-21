@@ -1,0 +1,14 @@
+<div class="stage" id="stage-dispatch" hidden>
+  <section class="panel">
+    <div class="panel__head"><div><h2>调拨行程</h2><span class="subtle" id="fleet-limits"></span></div><button class="btn" id="sample-plan">载入样例方案</button></div>
+    <form id="dispatch-form">
+      <div class="ledger-scroll" id="leg-editor"></div>
+      <div class="panel__body actions form-actions"><button class="btn" id="add-leg" type="button">新增行程</button><button class="btn" id="discard" type="button">撤回草稿</button><button class="btn" type="submit">试算</button><button class="btn btn--primary" id="publish" type="button" disabled>发布方案</button></div>
+    </form>
+  </section>
+  <section class="panel">
+    <div class="panel__head"><h2>未成交差量</h2><span class="subtle" id="compare-state">已发布方案</span></div>
+    <div id="station-compare" class="panel__body diff-grid"></div>
+    <div class="ledger-scroll" id="attempt-compare"></div>
+  </section>
+</div>

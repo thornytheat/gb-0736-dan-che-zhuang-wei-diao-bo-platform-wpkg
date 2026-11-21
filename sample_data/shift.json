@@ -1,0 +1,17 @@
+{
+  "name": "江湾东线 · 早高峰",
+  "start": "2026-11-20T08:00:00+08:00",
+  "end": "2026-11-20T10:00:00+08:00",
+  "opening_road": 14,
+  "min_travel_minutes": 4,
+  "stations": {
+    "001": {"name": "江湾广场", "opening": 8},
+    "002": {"name": "东门地铁", "opening": 2},
+    "003": {"name": "文创园北", "opening": 6},
+    "004": {"name": "滨江步道", "opening": 3}
+  },
+  "trucks": {
+    "T-01": {"station": "001", "load_limit": 4, "available_at": "2026-11-20T08:06:00+08:00"},
+    "T-02": {"station": "003", "load_limit": 3, "available_at": "2026-11-20T09:00:00+08:00"}
+  }
+}
